@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 import Combine
 
 @MainActor
@@ -106,9 +107,18 @@ final class AppState: ObservableObject {
                 DispatchQueue.main.async { self.scan(.videos) }
             }
         case "donate": DispatchQueue.main.async { self.showingDonate = true }
-        case "overview": selection = .section(.overview)
-        case "caches": selection = .section(.caches)
+        case "volume":
+            if let v = volumes.first(where: { !$0.isRoot }) ?? volumes.first { selection = .volume(v.id) }
+        case let name?:
+            if let sec = Section(rawValue: name) { selection = .section(sec) }
         default: break
+        }
+        // Teste de layout: abre a janela com este tamanho (ex.: -testWindow 1120x760).
+        if let size = d.string(forKey: "testWindow")?.split(separator: "x").compactMap({ Double($0) }), size.count == 2 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                NSApp.windows.first { $0.isVisible && $0.title.contains("Free Mac") }?
+                    .setFrame(NSRect(x: 80, y: 80, width: size[0], height: size[1]), display: true)
+            }
         }
     }
 

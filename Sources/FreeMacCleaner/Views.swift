@@ -77,6 +77,7 @@ struct ContentView: View {
                 .padding()
             }
         } detail: {
+            Group {
             switch state.selection {
             case .home, nil:
                 HomeView()
@@ -91,8 +92,14 @@ struct ContentView: View {
                     VolumeView(volume: v).id(path)
                 } else {
                     ContentUnavailableView("Disco desconectado", systemImage: "externaldrive.badge.questionmark")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
+            }
+            // A área da direita nunca pede mais largura do que tem: a barra lateral não é empurrada para fora.
+            .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity, alignment: .top)
+            .clipped()
+            .navigationSplitViewColumnWidth(min: 560, ideal: 900)
         }
         .toolbar {
             ToolbarItemGroup(placement: .navigation) {
@@ -320,21 +327,24 @@ struct VolumeView: View {
             } else if state.results[section] == nil {
                 ContentUnavailableView("Ainda não escaneado", systemImage: volume.symbol,
                                        description: Text("Clique em Procurar temporários."))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if items.isEmpty {
                 ContentUnavailableView("Nenhum temporário", systemImage: "checkmark.circle",
                                        description: Text("Este disco está limpo."))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ItemTable(section: section, items: items)
             }
 
             Divider()
 
-            HStack {
+            AdaptiveBar {
                 Button("Selecionar todos") { setAll(items, true) }
                 Button("Desmarcar") { setAll(items, false) }
-                Spacer()
+            } summary: {
                 Text("\(selected.count) selecionados · \(Fmt.size(selectedSize))")
                     .font(.callout.monospacedDigit()).foregroundStyle(.secondary)
+            } actions: {
                 Button {
                     state.confirmingVolume = true
                 } label: {
@@ -415,7 +425,7 @@ struct SectionView: View {
                     Stepper("Mostrar arquivos a partir de \(state.largeFileMinMB) MB", value: $state.largeFileMinMB, in: 50...10_000, step: 50)
                 }
                 if section == .oldFiles {
-                    HStack(spacing: 24) {
+                    FlowLayout(spacing: 24) {
                         Stepper("Sem abrir há mais de \(state.oldFilesMinDays) dias", value: $state.oldFilesMinDays, in: 30...1825, step: 30)
                         Stepper("A partir de \(state.oldFilesMinMB) MB", value: $state.oldFilesMinMB, in: 1...5000, step: 5)
                     }
@@ -447,9 +457,11 @@ struct SectionView: View {
             } else if state.results[section] == nil {
                 ContentUnavailableView("Ainda não escaneado", systemImage: section.symbol,
                                        description: Text("Clique em Escanear para ver o que dá para liberar."))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if items.isEmpty {
                 ContentUnavailableView("Nada encontrado", systemImage: "checkmark.circle",
                                        description: Text("Nenhum item com esses critérios."))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ItemTable(section: section, items: items)
             }
@@ -457,13 +469,14 @@ struct SectionView: View {
             Divider()
 
             // Rodapé
-            HStack {
+            AdaptiveBar {
                 Button("Selecionar todos") { state.selectAllVisible(section, true) }
                 Button("Desmarcar") { state.selectAllVisible(section, false) }
-                Spacer()
+            } summary: {
                 Text("\(selected.count) selecionados · \(Fmt.size(selectedSize))")
                     .font(.callout.monospacedDigit())
                     .foregroundStyle(.secondary)
+            } actions: {
                 Button(role: section == .trash ? .destructive : nil) {
                     state.confirming = section
                 } label: {
@@ -514,11 +527,11 @@ struct ICloudFilters: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 16) {
+            FlowLayout(spacing: 16) {
                 Picker("Tipo", selection: $state.icloudKind) {
                     ForEach(FileKind.allCases) { Text($0.rawValue).tag($0) }
                 }
-                .frame(width: 260)
+                .fixedSize()
                 Picker("Tamanho mínimo", selection: $state.icloudMinMB) {
                     Text("100 KB").tag(0.1)
                     Text("1 MB").tag(1.0)
@@ -526,7 +539,7 @@ struct ICloudFilters: View {
                     Text("100 MB").tag(100.0)
                     Text("1 GB").tag(1000.0)
                 }
-                .frame(width: 220)
+                .fixedSize()
                 Picker("Sem abrir há", selection: $state.icloudMinDays) {
                     Text("Qualquer tempo").tag(0)
                     Text("30 dias").tag(30)
@@ -534,13 +547,12 @@ struct ICloudFilters: View {
                     Text("6 meses").tag(180)
                     Text("1 ano").tag(365)
                 }
-                .frame(width: 220)
+                .fixedSize()
             }
-            HStack {
+            FlowLayout(spacing: 16) {
                 TextField("Buscar por nome ou pasta", text: $state.icloudSearch)
                     .textFieldStyle(.roundedBorder)
-                    .frame(maxWidth: 320)
-                Spacer()
+                    .frame(width: 300)
                 SettingsLink {
                     Label("Pastas protegidas (\(state.protectedFolders.count))", systemImage: "lock.shield")
                 }
@@ -757,6 +769,7 @@ struct OverviewView: View {
                     ContentUnavailableView(scannedAny ? "Nada encontrado" : "Ainda não escaneado",
                                            systemImage: Section.overview.symbol,
                                            description: Text(scannedAny ? "Nenhum item com os critérios atuais." : "Clique em Escanear tudo."))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             } else {
                 Table(rows) {
@@ -816,12 +829,13 @@ struct OverviewView: View {
 
             Divider()
 
-            HStack {
+            AdaptiveBar {
                 Button("Selecionar todos") { state.selectAllGlobal(true) }
                 Button("Desmarcar todos") { state.selectAllGlobal(false) }
-                Spacer()
+            } summary: {
                 Text("\(selected.count) selecionados · \(Fmt.size(selectedSize))")
                     .font(.callout.monospacedDigit()).foregroundStyle(.secondary)
+            } actions: {
                 Button {
                     state.confirmingGlobal = true
                 } label: {
@@ -948,7 +962,8 @@ struct VideosView: View {
                 if state.videoFolder != nil {
                     Button("Todos os discos") { state.videoFolder = nil; state.videoFolderFilter = nil; state.scan(.videos) }
                 }
-                Spacer(minLength: 8)
+            }
+            FlowLayout(spacing: 16) {
                 Toggle("Modo rápido", isOn: $state.videoFastMode)
                     .toggleStyle(.switch).controlSize(.small)
                     .fixedSize()
@@ -990,17 +1005,20 @@ struct VideosView: View {
         } else if state.results[.videos] == nil {
             ContentUnavailableView("Escolha onde procurar", systemImage: "film.stack",
                                    description: Text("Escolha uma pasta ou clique em Procurar vídeos para olhar todos os discos."))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if state.results[.videos]?.isEmpty ?? true {
             ContentUnavailableView("Nenhum vídeo grande", systemImage: "checkmark.circle",
                                    description: Text("Nenhum vídeo .mp4, .mov ou .m4v a partir de \(state.videoMinMB) MB."))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             HStack(spacing: 0) {
                 VideoFolderList()
-                    .frame(width: 300)
+                    .frame(width: 210)
                     .frame(maxHeight: .infinity)
                 Divider()
                 videoTable(items)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .frame(minWidth: 0, maxWidth: .infinity, maxHeight: .infinity)
+                    .layoutPriority(1)
             }
         }
     }
@@ -1021,15 +1039,16 @@ struct VideosView: View {
                 }
                 .help(item.url.path)
             }
-            .width(min: 160, ideal: 240)
+            .width(min: 120, ideal: 170)
             TableColumn("Resolução") { item in
-                Text(item.video?.resolution ?? "—").foregroundStyle(.secondary).lineLimit(1)
+                Text(item.video?.shortResolution ?? "—").foregroundStyle(.secondary).lineLimit(1)
+                    .help(item.video?.resolution ?? "")
             }
-            .width(min: 90, ideal: 130)
+            .width(min: 50, ideal: 70)
             TableColumn("Formato") { item in
                 Text(item.video.map { $0.codec + ($0.hdr ? " HDR" : "") } ?? "—").foregroundStyle(.secondary)
             }
-            .width(min: 50, ideal: 70)
+            .width(min: 50, ideal: 75)
             TableColumn("Tamanho") { item in
                 let now = state.currentSize(item)
                 if now != item.size {
@@ -1039,11 +1058,11 @@ struct VideosView: View {
                     Text(Fmt.size(item.size)).monospacedDigit()
                 }
             }
-                .width(min: 60, ideal: 80)
+                .width(min: 60, ideal: 70)
             TableColumn("Depois / Status") { item in
                 if let job = state.videoJobs[item.url] { jobCell(job) } else { afterCell(item) }
             }
-                .width(min: 220, ideal: 290)
+                .width(min: 150, ideal: 210)
         }
         .contextMenu(forSelectionType: UUID.self) { ids in
             Button("Mostrar no Finder") {
@@ -1117,12 +1136,12 @@ struct VideosView: View {
 
     @ViewBuilder
     private func footer(selected: [ScanItem], before: Int64, after: Int64, lossy: Int) -> some View {
-        HStack(spacing: 10) {
+        AdaptiveBar {
             Button("Selecionar todos") { state.setVideosSelected(in: state.videoFolderFilter, true) }
                 .fixedSize()
             Button("Desmarcar") { state.setVideosSelected(in: state.videoFolderFilter, false) }
                 .fixedSize()
-            Spacer(minLength: 8)
+        } summary: {
             VStack(alignment: .trailing, spacing: 2) {
                 Text("\(state.videoFolderFilter.map { URL(fileURLWithPath: $0).lastPathComponent + ": " } ?? "")\(selected.count) vídeos · \(Fmt.size(before)) → ≈ \(Fmt.size(after))")
                     .font(.callout.monospacedDigit())
@@ -1132,7 +1151,7 @@ struct VideosView: View {
                         .font(.caption).foregroundStyle(.orange)
                 }
             }
-            .layoutPriority(-1)
+        } actions: {
             Button {
                 state.compressReplace = false
                 state.confirmingCompress = true

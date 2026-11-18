@@ -69,10 +69,13 @@ struct VideoInfo: Hashable {
     /// Tamanho máximo aceito na conferência (fração do original).
     var maxRatio: Double { mode == .light ? 0.92 : 0.75 }
 
-    var resolution: String {
+    var resolution: String { "\(width)×\(height) (\(shortResolution))" }
+
+    /// "4K", "1080p"… (com "vertical" quando o vídeo é em pé).
+    var shortResolution: String {
         let short = min(width, height)
         let label = short >= 2100 ? "4K" : short >= 1400 ? "1440p" : short >= 1000 ? "1080p" : short >= 700 ? "720p" : "\(short)p"
-        return "\(width)×\(height) (\(label))"
+        return height > width ? label + " ▯" : label
     }
 }
 
